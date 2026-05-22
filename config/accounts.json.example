@@ -7,32 +7,26 @@
     "topics": ["market trends", "industry analysis", "macro", "price analysis"],
     "tone": "Authoritative but not arrogant — let data speak",
     "language": "zh",
+    "target_followers": 5000,
     "content_types": {
       "high_engagement": ["data thread", "industry insight", "price analysis"],
       "viral_potential": ["contrarian take", "historical comparison", "prediction verified"]
     },
-    "kol_list": [
-      "Alpha_Sniper_CN",
-      "cz_binance",
-      "VitalikButerin"
-    ]
+    "kol_list": []
   },
   "pyy": {
     "name": "PYY",
     "handle": "your_other_x_handle",
     "persona": "Female investor — macro trading, primary market, Crypto+AI",
     "style": "Macro trading, primary investment, industry analysis, equities",
-    "topics": ["macro trading", "primary investment", "industry analysis", "equities"],
+    "topics": ["macro trading", "primary investment", "industry analysis", "AI+crypto"],
     "tone": "Professional with warmth, female perspective",
     "language": "zh",
+    "target_followers": 2000,
     "content_types": {
       "high_engagement": ["macro insight", "investment thesis", "AI+crypto intersection"],
       "viral_potential": ["portfolio story", "market call", "trend early-signal"]
     },
-    "kol_list": [
-      "SBF_FTX",
-      "balajis",
-      "naval"
-    ]
+    "kol_list": []
   }
 }

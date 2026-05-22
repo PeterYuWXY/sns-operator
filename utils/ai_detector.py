@@ -1,76 +1,152 @@
-"""Detect AI-generated tone patterns in text. Score 0-100 (0 = human, 100 = obvious AI)."""
+"""Detect AI-generated tone patterns. Score 0-100 (0 = human, 100 = obvious AI)."""
 import re
 from collections import Counter
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
-# Chinese AI writing clichés
-_CN = [
-    r"值得注意的是", r"不容忽视", r"毋庸置疑", r"总的来说", r"综上所述",
-    r"不得不说", r"显而易见", r"众所周知", r"与此同时", r"在此背景下",
-    r"从某种程度上说", r"不言而喻", r"从这个角度来看", r"从长远来看",
-    r"在某种意义上", r"在这种情况下", r"针对这一问题", r"就目前而言",
-    r"换句话说", r"总而言之", r"简而言之", r"深度.*分析", r"全面.*解析",
-    r"深度.*解读", r"一文.*读懂", r"让我们", r"本文.*", r"笔者.*",
-    r"值得一提的是", r"不可否认", r"从全局来看", r"在此基础上",
-    r"进一步来说", r"除此之外", r"值得关注的是", r"尤其值得注意",
-    r"毫无疑问", r"可以预见", r"不难发现", r"这也意味着",
-    r"不难看出", r"由此可见", r"由此可知", r"不禁让人", r"引人深思",
-    r"令人深思", r"发人深省", r"值得深思", r"不得不.*思考",
-    r"对此.*看法", r"笔者认为", r"在笔者看来", r"作者认为",
-    r"随着.*发展", r"随着.*时代", r"随着.*进步", r"随着.*普及",
-    r"当今社会", r"在当今", r"当下.*时代", r"新时代.*背景",
-    r"在这个.*时代", r"如今.*时代", r"面对.*挑战", r"面临.*机遇",
-    r"如何.*成为", r"如何.*实现", r"如何.*做到", r"如何.*应对",
-    r"背后的.*逻辑", r"背后的.*原因", r"背后的.*真相",
-    r"深层.*原因", r"根本.*原因", r"核心.*问题", r"关键.*所在",
-    r"重要.*意义", r"深远.*影响", r"巨大.*影响", r"不可.*忽视",
-    r"值得.*期待", r"令人.*期待", r"引人.*关注",
-    r"一、", r"二、", r"三、", r"（一）", r"（二）", r"（三）",
-    r"首先.*其次.*最后", r"第一.*第二.*第三",
+# Each entry: (pattern, category, penalty)
+_PATTERNS_CN: List[Tuple[str, str, int]] = [
+    # 套话
+    (r"值得注意的是", "套话", 10),
+    (r"不容忽视", "套话", 8),
+    (r"毋庸置疑", "套话", 10),
+    (r"总的来说", "套话", 10),
+    (r"综上所述", "套话", 10),
+    (r"不得不说", "套话", 8),
+    (r"显而易见", "套话", 8),
+    (r"众所周知", "套话", 8),
+    (r"与此同时", "套话", 6),
+    (r"在此背景下", "套话", 8),
+    (r"从某种程度上说", "套话", 8),
+    (r"不言而喻", "套话", 8),
+    (r"换句话说", "套话", 6),
+    (r"总而言之", "套话", 8),
+    (r"简而言之", "套话", 8),
+    (r"不可否认", "套话", 8),
+    (r"从全局来看", "套话", 8),
+    (r"在此基础上", "套话", 6),
+    (r"进一步来说", "套话", 6),
+    (r"值得一提的是", "套话", 10),
+    (r"值得关注的是", "套话", 10),
+    (r"尤其值得注意", "套话", 10),
+    (r"毫无疑问", "套话", 8),
+    (r"可以预见", "套话", 6),
+    (r"不难发现", "套话", 6),
+    (r"不难看出", "套话", 6),
+    (r"由此可见", "套话", 6),
+    (r"不禁让人", "套话", 8),
+    (r"引人深思", "套话", 8),
+    (r"发人深省", "套话", 8),
+    (r"我们不禁要问", "套话", 10),
+    # AI 句式
+    (r"不仅.*而且", "AI句式", 8),
+    (r"一方面.*另一方面", "AI句式", 8),
+    (r"虽然.*但是", "AI句式", 5),
+    (r"首先.*其次.*最后", "AI句式", 8),
+    (r"第一.*第二.*第三", "AI句式", 8),
+    # 书面词汇
+    (r"显著提升", "书面词汇", 8),
+    (r"充分利用", "书面词汇", 8),
+    (r"旨在", "书面词汇", 8),
+    (r"致力于", "书面词汇", 8),
+    (r"旨在.*实现", "书面词汇", 8),
+    # AI 写作特征
+    (r"让我们", "AI特征", 8),
+    (r"本文.*", "AI特征", 8),
+    (r"笔者.*", "AI特征", 8),
+    (r"作者.*认为", "AI特征", 8),
+    (r"随着.*的发展", "AI特征", 8),
+    (r"在当今时代", "AI特征", 8),
+    (r"随着.*时代", "AI特征", 8),
+    (r"当今社会", "AI特征", 8),
+    (r"新时代.*背景", "AI特征", 8),
+    (r"深度.*分析", "AI特征", 6),
+    (r"全面.*解析", "AI特征", 6),
+    (r"深度.*解读", "AI特征", 6),
+    (r"一文.*读懂", "AI特征", 6),
+    # 态度中立
+    (r"具体取决于实际情况", "态度中立", 8),
+    (r"各有优劣", "态度中立", 8),
+    (r"需要综合考虑", "态度中立", 5),
+    # 列表结构
+    (r"一、", "结构机械", 5),
+    (r"二、", "结构机械", 5),
+    (r"三、", "结构机械", 5),
+    (r"（一）", "结构机械", 5),
+    (r"（二）", "结构机械", 5),
 ]
 
-# English AI writing patterns
-_EN = [
-    r"it'?s worth noting", r"it is worth noting", r"needless to say",
-    r"in conclusion", r"in summary", r"to summarize", r"to conclude",
-    r"furthermore", r"moreover", r"additionally", r"in addition",
-    r"it'?s important to note", r"it should be noted", r"notably",
-    r"undoubtedly", r"without a doubt", r"there'?s no denying",
-    r"as we all know", r"as everyone knows", r"it goes without saying",
-    r"let me", r"let'?s explore", r"let'?s dive", r"let'?s take a look",
-    r"in this article", r"in this post", r"today we will", r"in today'?s",
-    r"the bottom line", r"at the end of the day", r"when all is said and done",
-    r"all things considered", r"in light of", r"it'?s clear that",
-    r"it is clear that", r"by and large", r"on the other hand",
-    r"on the flip side", r"in contrast", r"nevertheless", r"nonetheless",
-    r"having said that", r"that being said", r"in any case",
-    r"generally speaking", r"broadly speaking", r"in other words",
-    r"as a result", r"as such", r"to be fair", r"to be honest",
-    r"the fact of the matter", r"the reality is", r"the truth is",
-    r"it'?s no secret", r"it comes as no surprise", r"unsurprisingly",
-    r"interestingly", r"importantly", r"significantly", r"remarkably",
-    r"first(ly)?.*second(ly)?.*third(ly)?", r"firstly.*secondly.*lastly",
-    r"in the first place", r"last but not least",
-    r"dive deep", r"deep dive", r"unpack", r"delve into",
-    r"game.?changer", r"paradigm shift", r"move the needle",
-    r"at its core", r"at the heart of", r"at the end of the day",
+_PATTERNS_EN: List[Tuple[str, str, int]] = [
+    (r"it'?s worth noting", "cliché", 10),
+    (r"it is worth mentioning", "cliché", 10),
+    (r"needless to say", "cliché", 8),
+    (r"in conclusion", "cliché", 10),
+    (r"in summary", "cliché", 10),
+    (r"to summarize", "cliché", 8),
+    (r"furthermore", "cliché", 6),
+    (r"moreover", "cliché", 6),
+    (r"additionally", "cliché", 6),
+    (r"it'?s important to note", "cliché", 10),
+    (r"it should be noted", "cliché", 10),
+    (r"undoubtedly", "cliché", 8),
+    (r"without a doubt", "cliché", 8),
+    (r"there'?s no denying", "cliché", 8),
+    (r"as we all know", "cliché", 8),
+    (r"it goes without saying", "cliché", 8),
+    (r"let me", "AI特征", 8),
+    (r"let'?s explore", "AI特征", 8),
+    (r"let'?s dive", "AI特征", 8),
+    (r"in this article", "AI特征", 8),
+    (r"in this post", "AI特征", 8),
+    (r"today we will", "AI特征", 8),
+    (r"the bottom line", "cliché", 6),
+    (r"at the end of the day", "cliché", 6),
+    (r"when all is said and done", "cliché", 8),
+    (r"all things considered", "cliché", 8),
+    (r"having said that", "cliché", 6),
+    (r"that being said", "cliché", 6),
+    (r"generally speaking", "cliché", 6),
+    (r"broadly speaking", "cliché", 6),
+    (r"to be honest", "cliché", 5),
+    (r"first(ly)?.*second(ly)?.*third(ly)?", "AI句式", 8),
+    (r"firstly.*secondly.*lastly", "AI句式", 8),
+    (r"in the first place", "AI句式", 6),
+    (r"last but not least", "cliché", 8),
+    (r"deep dive|dive deep", "cliché", 6),
+    (r"unpack", "cliché", 6),
+    (r"delve into", "cliché", 6),
+    (r"game.?changer", "cliché", 6),
+    (r"paradigm shift", "cliché", 6),
 ]
+
+# Hedging / neutral language (indicates wishy-washy AI output)
+_NEUTRAL_CN = [r"可能", r"也许", r"大概", r"或许", r"不一定"]
+_NEUTRAL_EN = [r"\bmaybe\b", r"\bperhaps\b", r"\bpossibly\b", r"\bapparently\b"]
 
 
 def detect(text: str) -> Dict:
     issues: List[str] = []
     raw_score = 0
 
-    for p in _CN:
-        if re.search(p, text, re.IGNORECASE):
-            raw_score += 7
-            issues.append(f"[CN] {p}")
+    for pattern, category, penalty in _PATTERNS_CN:
+        matches = re.findall(pattern, text, re.IGNORECASE)
+        if matches:
+            raw_score += penalty * len(matches)
+            issues.append(f"[{category}] {pattern} ×{len(matches)}")
 
     tl = text.lower()
-    for p in _EN:
-        if re.search(p, tl):
-            raw_score += 7
-            issues.append(f"[EN] {p}")
+    for pattern, category, penalty in _PATTERNS_EN:
+        matches = re.findall(pattern, tl)
+        if matches:
+            raw_score += penalty * len(matches)
+            issues.append(f"[{category}] {pattern} ×{len(matches)}")
+
+    # Neutral/hedging language accumulation
+    neutral_count = sum(len(re.findall(p, text)) for p in _NEUTRAL_CN)
+    neutral_count += sum(len(re.findall(p, tl)) for p in _NEUTRAL_EN)
+    if neutral_count > 3:
+        penalty = 5 * (neutral_count - 3)
+        raw_score += penalty
+        issues.append(f"[态度中立] 模糊表达 {neutral_count} 处 (+{penalty})")
 
     # Repeated sentence openers
     sentences = re.split(r"[。！？.!?\n]", text)
@@ -78,14 +154,14 @@ def detect(text: str) -> Dict:
     for starter, cnt in Counter(starters).items():
         if cnt >= 3 and starter.strip():
             raw_score += 12
-            issues.append(f"[REPEAT] '{starter}' ×{cnt}")
+            issues.append(f"[重复开头] '{starter}' ×{cnt}")
 
-    # Excessive list structure
+    # Excessive list/structure markers
     list_marks = len(re.findall(r"[①②③④⑤⑥⑦⑧⑨⑩]|\b\d+\.\s|^[-•]\s", text, re.MULTILINE))
     if list_marks > 4:
         raw_score += 10
-        issues.append(f"[STRUCT] {list_marks} list markers")
+        issues.append(f"[过度结构化] {list_marks} 个列表标记")
 
     score = min(raw_score, 100)
     grade = "A" if score < 20 else "B" if score < 40 else "C" if score < 60 else "D"
-    return {"score": score, "grade": grade, "issues": issues[:12]}
+    return {"score": score, "grade": grade, "issues": issues[:15]}

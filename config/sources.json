@@ -1,30 +1,38 @@
 {
-  "twitter_kols": {
-    "cn": [
-      {"handle": "Alpha_Sniper_CN", "category": "crypto_trading", "weight": 35},
-      {"handle": "cz_binance",       "category": "exchange",        "weight": 25},
-      {"handle": "BitcoinMagazine",  "category": "btc",             "weight": 20}
-    ],
-    "en": [
-      {"handle": "VitalikButerin",   "category": "eth",             "weight": 25},
-      {"handle": "balajis",          "category": "macro_crypto",    "weight": 20},
-      {"handle": "naval",            "category": "philosophy",      "weight": 15}
-    ]
-  },
-  "reddit": [
-    {"subreddit": "CryptoCurrency",  "sort": "hot", "limit": 10},
-    {"subreddit": "Bitcoin",         "sort": "hot", "limit": 10},
-    {"subreddit": "ethfinance",      "sort": "hot", "limit": 5}
+  "twitter_kols": [
+    {"handle": "Alpha_Sniper_CN", "category": "crypto_trading", "weight": 35},
+    {"handle": "WuBlockchain",    "category": "news",           "weight": 30},
+    {"handle": "cz_binance",      "category": "exchange",       "weight": 30},
+    {"handle": "VitalikButerin",  "category": "eth_ecosystem",  "weight": 30},
+    {"handle": "saylor",          "category": "bitcoin",        "weight": 28},
+    {"handle": "naval",           "category": "philosophy",     "weight": 25},
+    {"handle": "DegenSpartan",    "category": "defi",           "weight": 25},
+    {"handle": "Route2FI",        "category": "defi",           "weight": 25},
+    {"handle": "TheBlock__",      "category": "news",           "weight": 20},
+    {"handle": "iamjosephyoung",  "category": "news",           "weight": 18}
+  ],
+  "reddit_subs": [
+    {"name": "CryptoCurrency", "weight": 20},
+    {"name": "Bitcoin",        "weight": 20},
+    {"name": "ethfinance",     "weight": 15},
+    {"name": "defi",           "weight": 15},
+    {"name": "CryptoMarkets",  "weight": 12}
   ],
   "rss_feeds": [
-    {"name": "CoinDesk",   "url": "https://www.coindesk.com/arc/outboundfeeds/rss/", "weight": 30},
-    {"name": "The Block",  "url": "https://www.theblock.co/rss.xml",                 "weight": 25},
-    {"name": "Decrypt",    "url": "https://decrypt.co/feed",                          "weight": 20},
-    {"name": "CoinTelegraph", "url": "https://cointelegraph.com/rss",                "weight": 20}
+    {"name": "CoinDesk",      "url": "https://www.coindesk.com/arc/outboundfeeds/rss/", "weight": 25},
+    {"name": "CoinTelegraph", "url": "https://cointelegraph.com/rss",                   "weight": 22},
+    {"name": "TheBlock",      "url": "https://www.theblock.co/rss.xml",                 "weight": 22},
+    {"name": "Decrypt",       "url": "https://decrypt.co/feed",                          "weight": 18}
+  ],
+  "hit_keywords": [
+    "BTC", "ETH", "DeFi", "AI", "空投", "撸毛", "减半", "ETF",
+    "Layer2", "模块化", "Restaking", "RWA", "GameFi", "SocialFi",
+    "SEC", "监管", "机构", "牛市", "熊市", "清算", "爆仓"
   ],
   "nitter_instances": [
     "https://nitter.net",
     "https://nitter.privacydev.net",
-    "https://nitter.poast.org"
+    "https://nitter.poast.org",
+    "https://nitter.cz"
   ]
 }

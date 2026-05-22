@@ -1,4 +1,4 @@
-"""Orchestrator: main entry point for all pipeline modes."""
+"""Orchestrator: unified entry point for all pipeline modes."""
 import argparse
 import asyncio
 import json
@@ -11,90 +11,96 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+_BASE = Path(__file__).parent.parent
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler(Path(__file__).parent.parent / "logs" / "orchestrator.log"),
+        logging.FileHandler(_BASE / "logs" / "orchestrator.log"),
     ],
 )
 logger = logging.getLogger("orchestrator")
 
-_RULES_PATH = Path(__file__).parent.parent / "config" / "rules.json"
-_ACTIVE_ACCOUNTS = os.getenv("ACTIVE_ACCOUNTS", "").split(",")
+_ACTIVE_ACCOUNTS = [a.strip() for a in os.getenv("ACTIVE_ACCOUNTS", "").split(",") if a.strip()]
 
 
 def _accounts() -> list:
-    accts = [a.strip() for a in _ACTIVE_ACCOUNTS if a.strip()]
-    if not accts:
-        from core.writer_kimi import _load_accounts
-        accts = list(_load_accounts().keys())
-    return accts
+    if _ACTIVE_ACCOUNTS:
+        return _ACTIVE_ACCOUNTS
+    from core.writer_kimi import _load_accounts
+    return list(_load_accounts().keys())
 
 
-# ── MODE: write ──────────────────────────────────────────────────────────────
+# ── MODE: scout ───────────────────────────────────────────────────────────────
+
+def mode_scout() -> None:
+    from core.scout import run as scout_run
+    results = scout_run(save_queue=True)
+    print(f"\nScout: {len(results)} candidates")
+    for r in results[:5]:
+        print(f"  [{r['score']:5.1f}] [{r['freshness_label']}] {r['source']}: {r['topic'][:65]}")
+
+
+# ── MODE: write ───────────────────────────────────────────────────────────────
 
 async def mode_write(slot: str, dry_run: bool = False) -> None:
     from core.scout import top_topics
-    from core.writer_kimi import generate
-    from core.tg_publisher import send_sync
+    from core.writer_kimi import generate_batch
+    from core.tg_publisher import send_review_batch, send_sync
     from core.reporter import log_content
     from core.publisher_x import XPublisher
 
-    rules = json.loads(_RULES_PATH.read_text())
-    slot_cfg = rules["slots"].get(slot, {})
+    rules = json.loads((_BASE / "config" / "rules.json").read_text())
     min_q = rules["content"]["min_quality_score"]
 
-    topics_raw = top_topics(5)
+    # Get topics (prefer cached queue, fall back to live scrape)
+    topics_raw = top_topics(4, from_queue=True)
+    if not topics_raw:
+        logger.warning("No scout data in queue; running live scout...")
+        from core.scout import run as scout_run
+        candidates = scout_run(save_queue=True)
+        topics_raw = [c["topic"] for c in candidates[:4]]
+
+    topics = [{"topic": t, "context": ""} for t in topics_raw[:2]]
     accounts = _accounts()
 
-    for account_key in accounts:
-        for topic in topics_raw[:2]:  # 2 topics per slot per account
-            result = generate(
-                account_key=account_key,
-                topic=topic,
-                slot=slot,
-                content_type=slot_cfg.get("format", "tweet"),
-                min_quality=min_q,
-            )
+    results = generate_batch(topics, account_keys=accounts, slot=slot, save_queue=True)
+    logger.info("Generated %d drafts", len(results))
 
-            best = result.get("best")
-            if not best:
-                logger.warning("No valid draft for %s / %s", account_key, topic[:30])
-                continue
+    # Push to TG for review
+    sent = await send_review_batch(results)
+    logger.info("Sent %d drafts to TG", sent)
 
-            if not result.get("approved"):
-                logger.info("Draft below threshold for %s, sending to TG for review", account_key)
+    if dry_run:
+        logger.info("[DRY RUN] Skipping publish")
+        return
 
-            # Push to TG for review
-            msg = (
-                f"📝 *新推文草稿* | @{result.get('handle')} | {slot}\n"
-                f"话题: {topic[:40]}\n"
-                f"质量: {best['quality']['score']}/100 (AI腔: {best['quality']['checks'].get('ai_tone',{}).get('score','?')})\n\n"
-                f"```\n{best['text']}\n```"
-            )
-            send_sync(msg)
-            log_content(account_key, best["text"], topic, best["quality"]["score"])
-
-            if dry_run:
-                logger.info("[DRY] Would post: %s...", best["text"][:60])
-                continue
-
-            if result.get("approved"):
-                async with XPublisher(account_key) as pub:
-                    ok = await pub.post_tweet(best["text"])
-                    logger.info("Post result for %s: %s", account_key, ok)
+    # Auto-publish approved drafts
+    for result in results:
+        best = result.get("best")
+        if not best or best["quality"]["score"] < min_q:
+            continue
+        account_key = result["account"]
+        text = best["text"]
+        async with XPublisher(account_key) as pub:
+            ok = await pub.post_tweet(text)
+            if ok:
+                log_content(account_key, text, result.get("topic", ""), best["quality"]["score"])
+                logger.info("Published for %s", account_key)
 
 
 # ── MODE: engage ─────────────────────────────────────────────────────────────
 
 async def mode_engage(dry_run: bool = False) -> None:
     from core.engager import run as engage_run
+    from core.tg_publisher import send_sync
+
     results = await engage_run(account_keys=_accounts(), dry_run=dry_run)
     for acct, items in results.items():
-        published = sum(1 for r in items if r.get("published"))
-        logger.info("Engage %s: %d/%d published", acct, published, len(items))
+        pub_count = sum(1 for r in items if r.get("published"))
+        msg = f"🤝 <b>{acct}</b> 互动完成：{pub_count}/{len(items)} 条评论发布"
+        send_sync(msg)
 
 
 # ── MODE: report ─────────────────────────────────────────────────────────────
@@ -104,44 +110,43 @@ def mode_report() -> None:
     report_run(account_keys=_accounts())
 
 
-# ── MODE: scout ──────────────────────────────────────────────────────────────
+# ── MODE: bot ─────────────────────────────────────────────────────────────────
 
-def mode_scout() -> None:
-    from core.scout import run as scout_run
-    import json
-    data = scout_run()
-    for category, items in data.items():
-        print(f"\n── {category} ({len(items)} items) ──")
-        for item in items[:3]:
-            print(f"  • {item.get('title', item.get('text', ''))[:80]}")
+def mode_bot() -> None:
+    """Start interactive TG bot (blocking)."""
+    from core.tg_publisher import run_bot
+    run_bot()
 
 
-# ── MODE: test ───────────────────────────────────────────────────────────────
+# ── MODE: test ────────────────────────────────────────────────────────────────
 
 def mode_test() -> None:
-    """Quick smoke test of all modules."""
     print("=== SNS Operator smoke test ===\n")
 
-    print("[1] Scout...")
-    from core.scout import top_topics
-    topics = top_topics(3)
-    print(f"  Got {len(topics)} topics: {topics[:2]}")
-
-    print("[2] AI Detector...")
+    print("[1/4] AI Detector...")
     from utils.ai_detector import detect
-    r = detect("值得注意的是，这是一个重要的测试，综上所述效果不错。")
-    print(f"  Score: {r['score']}, Grade: {r['grade']}")
+    r = detect("值得注意的是，这是一个重要测试，综上所述效果很好。")
+    print(f"  Score: {r['score']} Grade: {r['grade']} Issues: {len(r['issues'])}")
 
-    print("[3] Quality Gate...")
+    print("[2/4] Quality Gate...")
     from utils.quality_gate import score
-    r = score("BTC 今天突破 70K！这是历史上第三次在减半后6个月内创新高，你觉得这次能到多少？")
-    print(f"  Score: {r['score']}, Grade: {r['grade']}, Pass: {r['pass']}")
+    r = score("BTC 今天突破 70K！这是减半后6个月内第三次创新高，历史上每次都这样。你觉得这次能到多少？")
+    print(f"  Score: {r['score']} Grade: {r['grade']} Pass: {r['pass']}")
 
-    print("[4] Config check...")
-    from core.writer_kimi import _load_accounts, _API_KEY
+    print("[3/4] Scout (quick)...")
+    from core.scout import top_topics
+    topics = top_topics(3, from_queue=False)
+    # Scout may fail on network; show partial results
+    print(f"  Got {len(topics)} topics")
+    for t in topics[:2]:
+        print(f"  • {t[:70]}")
+
+    print("[4/4] Config check...")
+    from core.writer_kimi import _load_accounts, _KIMI_KEY, _OR_KEY
     accounts = _load_accounts()
     print(f"  Accounts: {list(accounts.keys())}")
-    print(f"  API key set: {'Yes' if _API_KEY else 'No (set KIMI_API_KEY)'}")
+    print(f"  Kimi key: {'✅' if _KIMI_KEY else '❌ (set KIMI_API_KEY)'}")
+    print(f"  OpenRouter key: {'✅' if _OR_KEY else '— (optional)'}")
 
     print("\n✅ Smoke test done.")
 
@@ -149,12 +154,11 @@ def mode_test() -> None:
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="SNS Operator Orchestrator")
+    parser = argparse.ArgumentParser(description="SNS Operator Pipeline")
     parser.add_argument(
         "--mode",
-        choices=["write", "engage", "report", "scout", "test"],
+        choices=["scout", "write", "engage", "report", "bot", "test"],
         default="test",
-        help="Pipeline mode to run",
     )
     parser.add_argument(
         "--slot",
@@ -162,7 +166,7 @@ def main() -> None:
         default="morning",
         help="Content slot (used with --mode write)",
     )
-    parser.add_argument("--dry", action="store_true", help="Dry run — generate but don't publish")
+    parser.add_argument("--dry", action="store_true", help="Dry run — no actual publishing")
     args = parser.parse_args()
 
     if args.mode == "test":
@@ -171,6 +175,8 @@ def main() -> None:
         mode_scout()
     elif args.mode == "report":
         mode_report()
+    elif args.mode == "bot":
+        mode_bot()
     elif args.mode == "engage":
         asyncio.run(mode_engage(dry_run=args.dry))
     elif args.mode == "write":

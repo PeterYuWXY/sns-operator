@@ -20,6 +20,11 @@ build/
 logs/*.log
 logs/*.jsonl
 
+# Generated queue & reports (contain user-specific content)
+queue/pending/*.json
+reports/*.json
+reports/*.txt
+
 # OS
 .DS_Store
 Thumbs.db
