@@ -31,26 +31,39 @@ nano .env
 **.env 需要填写：**
 
 ```bash
-KIMI_API_KEY=sk-xxxxxxxxxx          # Kimi Coding API Key
-TELEGRAM_BOT_TOKEN=123456:ABCxxx    # TG Bot Token（可选）
-TELEGRAM_CHAT_ID=1234567            # TG Chat ID（可选）
+# 必填 — Kimi API Key（支持 Kimi Coding / Moonshot，格式自动探测）
+KIMI_API_KEY=sk-xxxxxxxxxx
+
+# 可选 — OpenRouter 备用（Kimi 不可用时自动切换）
+OPENROUTER_API_KEY=sk-or-xxxxxxxxxx
+
+# 可选 — Telegram Bot（用于草稿审阅推送 & 数据报告）
+TELEGRAM_BOT_TOKEN=123456:ABCxxx
+TELEGRAM_CHAT_ID=1234567
 ```
 
 **config/accounts.json 账号配置：**
 
 ```json
 {
-  "myaccount": {
-    "name": "你的名字",
+  "account1": {
+    "name": "Your Name",
     "handle": "your_x_handle",
-    "persona": "你的账号定位",
-    "style": "内容风格描述",
-    "topics": ["话题1", "话题2"],
-    "tone": "语气基调",
-    "language": "zh"
+    "persona": "Your persona — e.g. Crypto investor / Marketing expert",
+    "style": "Your writing style — e.g. direct, data-driven, opinionated",
+    "topics": ["topic1", "topic2", "topic3"],
+    "tone": "Your tone — e.g. authoritative but approachable",
+    "language": "zh",
+    "target_followers": 5000,
+    "kol_list": []
   }
 }
 ```
+
+> **字段说明**
+> - `language`：`"zh"` 中文 / `"en"` 英文
+> - `target_followers`：30天目标粉丝数，用于进度报告
+> - `kol_list`：指定要互动的 KOL handle 列表，留空 `[]` 则使用 `sources.json` 默认列表
 
 ### 3. 导出 X Cookie
 
@@ -61,6 +74,10 @@ TELEGRAM_CHAT_ID=1234567            # TG Chat ID（可选）
 ### 4. 测试
 
 ```bash
+# 查看所有可用参数
+python3 core/orchestrator.py --help
+
+# 冒烟测试（检测配置是否正确）
 python3 core/orchestrator.py --mode test
 ```
 
