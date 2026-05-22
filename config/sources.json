@@ -1,0 +1,30 @@
+{
+  "twitter_kols": {
+    "cn": [
+      {"handle": "Alpha_Sniper_CN", "category": "crypto_trading", "weight": 35},
+      {"handle": "cz_binance",       "category": "exchange",        "weight": 25},
+      {"handle": "BitcoinMagazine",  "category": "btc",             "weight": 20}
+    ],
+    "en": [
+      {"handle": "VitalikButerin",   "category": "eth",             "weight": 25},
+      {"handle": "balajis",          "category": "macro_crypto",    "weight": 20},
+      {"handle": "naval",            "category": "philosophy",      "weight": 15}
+    ]
+  },
+  "reddit": [
+    {"subreddit": "CryptoCurrency",  "sort": "hot", "limit": 10},
+    {"subreddit": "Bitcoin",         "sort": "hot", "limit": 10},
+    {"subreddit": "ethfinance",      "sort": "hot", "limit": 5}
+  ],
+  "rss_feeds": [
+    {"name": "CoinDesk",   "url": "https://www.coindesk.com/arc/outboundfeeds/rss/", "weight": 30},
+    {"name": "The Block",  "url": "https://www.theblock.co/rss.xml",                 "weight": 25},
+    {"name": "Decrypt",    "url": "https://decrypt.co/feed",                          "weight": 20},
+    {"name": "CoinTelegraph", "url": "https://cointelegraph.com/rss",                "weight": 20}
+  ],
+  "nitter_instances": [
+    "https://nitter.net",
+    "https://nitter.privacydev.net",
+    "https://nitter.poast.org"
+  ]
+}

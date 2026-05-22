@@ -1,0 +1,25 @@
+# Environment
+.env
+.env.local
+
+# Secrets / Credentials
+config/accounts.json
+config/cookies/*.json
+config/cookies/*.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# Logs
+logs/*.log
+logs/*.jsonl
+
+# OS
+.DS_Store
+Thumbs.db

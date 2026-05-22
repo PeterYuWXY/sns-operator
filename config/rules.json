@@ -1,0 +1,27 @@
+{
+  "engagement": {
+    "daily_comment_target": {"min": 5, "max": 10},
+    "kol_ratio": {"cn": 0.7, "en": 0.3},
+    "auto_publish": true,
+    "require_review": false,
+    "min_quality_score": 70
+  },
+  "content": {
+    "tweet_max_chars": 280,
+    "optimal_length": {"min": 180, "max": 260},
+    "hashtag_limit": 3,
+    "thread_max_tweets": 8,
+    "require_review_before_publish": true,
+    "min_quality_score": 75
+  },
+  "quality_gate": {
+    "max_ai_tone_score": 30,
+    "block_below_grade": "C"
+  },
+  "slots": {
+    "morning":   {"themes": ["market_analysis", "overnight_moves"],  "format": "tweet"},
+    "noon":      {"themes": ["investment_insight", "data_point"],    "format": "thread"},
+    "afternoon": {"themes": ["product_update", "on_chain_data"],    "format": "tweet"},
+    "evening":   {"themes": ["reflection", "community_question"],   "format": "tweet"}
+  }
+}

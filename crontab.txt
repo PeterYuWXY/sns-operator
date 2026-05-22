@@ -1,0 +1,15 @@
+# SNS Operator Cron Jobs
+# Install: crontab crontab.txt
+# Requires: cd /path/to/sns-operator && source .env
+
+# Content production — 4 slots per day
+0  8 * * * cd /path/to/sns-operator && python3 core/orchestrator.py --mode write --slot morning
+0 12 * * * cd /path/to/sns-operator && python3 core/orchestrator.py --mode write --slot noon
+0 16 * * * cd /path/to/sns-operator && python3 core/orchestrator.py --mode write --slot afternoon
+0 20 * * * cd /path/to/sns-operator && python3 core/orchestrator.py --mode write --slot evening
+
+# KOL engagement — once daily
+0 14 * * * cd /path/to/sns-operator && python3 core/orchestrator.py --mode engage
+
+# Half-week report — Wednesday and Sunday
+0 10 * * 3,0 cd /path/to/sns-operator && python3 core/orchestrator.py --mode report
