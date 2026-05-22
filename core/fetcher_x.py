@@ -51,7 +51,7 @@ def _parse_count(text: str) -> int:
         return 0
 
 
-async def get_profile_stats(handle: str, account_key: str = "petery") -> Dict:
+async def get_profile_stats(handle: str, account_key: str = "account1") -> Dict:
     """Return follower count and following count for a handle."""
     cookies = _load_cookies(account_key)
     url = f"https://x.com/{handle}"
@@ -71,7 +71,7 @@ async def get_profile_stats(handle: str, account_key: str = "petery") -> Dict:
 
 
 async def get_kol_tweets(
-    handle: str, account_key: str = "petery", limit: int = 10
+    handle: str, account_key: str = "account1", limit: int = 10
 ) -> List[Dict]:
     """Fetch recent tweets from a KOL (requires logged-in cookies)."""
     cookies = _load_cookies(account_key)
@@ -108,9 +108,9 @@ async def get_kol_tweets(
         return []
 
 
-def get_profile_stats_sync(handle: str, account_key: str = "petery") -> Dict:
+def get_profile_stats_sync(handle: str, account_key: str = "account1") -> Dict:
     return asyncio.run(get_profile_stats(handle, account_key))
 
 
-def get_kol_tweets_sync(handle: str, account_key: str = "petery", limit: int = 10) -> List[Dict]:
+def get_kol_tweets_sync(handle: str, account_key: str = "account1", limit: int = 10) -> List[Dict]:
     return asyncio.run(get_kol_tweets(handle, account_key, limit))

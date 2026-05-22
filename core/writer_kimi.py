@@ -253,7 +253,7 @@ def load_latest_batch() -> Optional[Dict]:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     result = generate(
-        account_key="petery",
+        account_key="account1",
         topic="Bitcoin 减半后6个月历史走势对比分析",
         context="第四次减半已于2024年4月完成",
         slot="morning",

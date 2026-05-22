@@ -1,31 +1,31 @@
 {
-  "petery": {
-    "name": "PeterY",
+  "account1": {
+    "name": "Your Name",
     "handle": "your_x_handle",
-    "persona": "Crypto OG / Entrepreneur / Marketing Expert",
-    "style": "Professional, direct, opinionated, data-driven",
-    "topics": ["market trends", "industry analysis", "macro", "price analysis"],
-    "tone": "Authoritative but not arrogant — let data speak",
+    "persona": "Your persona — e.g. Crypto investor / Industry analyst",
+    "style": "Your writing style — e.g. direct, data-driven, opinionated",
+    "topics": ["topic1", "topic2", "topic3"],
+    "tone": "Your tone — e.g. authoritative but approachable",
     "language": "zh",
     "target_followers": 5000,
     "content_types": {
-      "high_engagement": ["data thread", "industry insight", "price analysis"],
-      "viral_potential": ["contrarian take", "historical comparison", "prediction verified"]
+      "high_engagement": ["content type 1", "content type 2"],
+      "viral_potential": ["viral type 1", "viral type 2"]
     },
     "kol_list": []
   },
-  "pyy": {
-    "name": "PYY",
+  "account2": {
+    "name": "Account 2 Name",
     "handle": "your_other_x_handle",
-    "persona": "Female investor — macro trading, primary market, Crypto+AI",
-    "style": "Macro trading, primary investment, industry analysis, equities",
-    "topics": ["macro trading", "primary investment", "industry analysis", "AI+crypto"],
-    "tone": "Professional with warmth, female perspective",
+    "persona": "Your second account persona",
+    "style": "Your second account writing style",
+    "topics": ["topic1", "topic2"],
+    "tone": "Your second account tone",
     "language": "zh",
     "target_followers": 2000,
     "content_types": {
-      "high_engagement": ["macro insight", "investment thesis", "AI+crypto intersection"],
-      "viral_potential": ["portfolio story", "market call", "trend early-signal"]
+      "high_engagement": ["content type 1"],
+      "viral_potential": ["viral type 1"]
     },
     "kol_list": []
   }
